@@ -1,16 +1,63 @@
 import sys
-
+import pandas as pd
+import numpy as np
+from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    '''
+    Function to read in csvs for raw messages and categories data and return them merged.
+    :param messages_filepath: filepath for raw messages dataset
+    :param categories_filepath: filepath for raw categories dataset
+    :return: raw datasets merged
+    '''
+
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    df = pd.merge(messages, categories, how='inner')
+
+    return df
 
 
 def clean_data(df):
-    pass
+    '''
+    Function to clean raw merged dataset and return cleaned dataset.
+    :param df: dataframe output from load_data()
+    :return: cleaned dataframe
+    '''
+    # extract category names from categories column and assign as column names
+    categories = df.categories.str.split(";", expand=True)
+    category_colnames = categories.iloc[0].str.split('-', expand=True)[0]
+    categories.columns = category_colnames
+
+    for column in categories:
+        # set each value to be the last character of the string
+        categories[column] = categories[column].str.split("-", expand=True)[1]
+
+        # convert column from string to numeric
+        categories[column] = categories[column].astype('str').astype('int64')
+
+    # drop the original categories column from `df`
+    df = df.drop('categories', axis=1)
+    # concatenate the original dataframe with the new `categories` dataframe
+    df = pd.concat([df, categories], axis=1, join='inner')
+    # drop duplicates
+    df.drop_duplicates(keep='first', inplace=True)
+
+    return df
 
 
 def save_data(df, database_filename):
-    pass  
+    '''
+    Function to write dataframe to SQLlite DB using SQLAlchemy and pandas to_sql()
+    :param df: dataframe output from clean_data()
+    :param database_filename: filepath for database to save data to
+    :return: None
+    '''
+    engine = create_engine(f'sqlite:///{database_filename}')
+    table_name = database_filename.replace(".db", "") + "_table"
+    df.to_sql(table_name, engine, index=False, if_exists='replace')
+
+    return None
 
 
 def main():
