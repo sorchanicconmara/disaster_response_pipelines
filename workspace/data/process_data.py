@@ -54,13 +54,17 @@ def save_data(df, database_filename):
     :return: None
     '''
     engine = create_engine(f'sqlite:///{database_filename}')
-    table_name = database_filename.replace(".db", "") + "_table"
+    table_name = database_filename.replace("data/", "").replace(".db", "") + "_TABLE"
     df.to_sql(table_name, engine, index=False, if_exists='replace')
 
     return None
 
 
 def main():
+    '''
+    Main function. Reads in CLI input from user, loads data, cleans data and saves data to database.
+    :return:
+    '''
     if len(sys.argv) == 4:
 
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
