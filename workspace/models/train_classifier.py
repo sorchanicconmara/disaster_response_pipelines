@@ -12,7 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import accuracy_score, classification_report
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sqlalchemy import create_engine
 
@@ -109,10 +109,20 @@ def build_model():
 
         ('Multi_Output_Classifier', MultiOutputClassifier(RandomForestClassifier()))
     ])
-    return ppl
+
+    params = {
+        'Feats__Text_Ppl__Count_Vectoriser__ngram_range': ((1, 1), (1, 2)),
+        'Feats__Text_Ppl__Count_Vectoriser__max_df': [0.75, 1.0],
+        'Multi_Output_Classifier__estimator__n_estimators': [10, 20],
+        'Multi_Output_Classifier__estimator__min_samples_split': [2, 4],
+    }
+
+    grd = GridSearchCV(ppl, param_grid=params, n_jobs=-1, verbose=2)
+
+    return grd
 
 
-def evaluate_model(model_ppl, X_test, y_test, category_names):
+def evaluate_model(model, X_test, y_test, category_names):
     '''
     Function to apply model pipeline from build_model() to test set and print model evaluation metrics.
     :param model_ppl: machine learning model pipeline
@@ -122,7 +132,7 @@ def evaluate_model(model_ppl, X_test, y_test, category_names):
     :return:
     '''
     # predictions for test set
-    y_pred = model_ppl.predict(X_test)
+    y_pred = model.predict(X_test)
 
     cf_rep = classification_report(y_test, y_pred, target_names = category_names, zero_division=True)
 
