@@ -46,18 +46,16 @@ def clean_data(df):
     return df
 
 
-def save_data(df, database_filename):
+def save_data(df, database_filepath):
     '''
     Function to write dataframe to SQLlite DB using SQLAlchemy and pandas to_sql()
     :param df: dataframe output from clean_data()
-    :param database_filename: filepath for database to save data to
+    :param database_filepath: filepath for database to save data to
     :return: None
     '''
-    engine = create_engine(f'sqlite:///{database_filename}')
-    table_name = database_filename.replace("data/", "").replace(".db", "") + "_TABLE"
+    engine = create_engine(f'sqlite:///{database_filepath}')
+    table_name = database_filepath.replace("data/", "").replace(".db", "") + "_TABLE"
     df.to_sql(table_name, engine, index=False, if_exists='replace')
-
-    return None
 
 
 def main():

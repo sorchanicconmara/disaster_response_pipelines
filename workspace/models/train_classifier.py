@@ -1,3 +1,4 @@
+import os
 import pickle
 import re
 import sys
@@ -8,8 +9,9 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sqlalchemy import create_engine
@@ -23,13 +25,18 @@ def load_data(database_filepath):
     :param database_filepath: filepath for sqllite database with data saved from process_data.py save_data()
     :return:
     '''
-    engine = create_engine(f'sqlite:///{database_filepath}')
+    cwd = os.getcwd()
+    cwd = cwd.replace('\\', '/')
+    engine = create_engine(f'sqlite:///{cwd}/{database_filepath}')
     table_name = database_filepath.replace("data/", "").replace(".db", "") + "_TABLE"
     df = pd.read_sql_table(table_name, engine)
 
     #drop any columns with a single unique value as these add nothing to model
     nunique_cols = df.columns[df.nunique() <= 1]
     df = df.drop(nunique_cols, axis=1)
+
+    # Assuming values of '2' here are in error and assigning to majority class rather than dropping labelled data
+    df['related'] = df['related'].map(lambda val: 1 if val == 2 else val)
 
     X = df.message
     y = df.iloc[:, 4:]
@@ -117,14 +124,13 @@ def evaluate_model(model_ppl, X_test, y_test, category_names):
     # predictions for test set
     y_pred = model_ppl.predict(X_test)
 
-    cf_rep = classification_report(y_test, y_pred, target_names = category_names)
+    cf_rep = classification_report(y_test, y_pred, target_names = category_names, zero_division=True)
 
     print(80 * '*')
     print(cf_rep)
     print(80 * '*')
     print('Accuracy Score:\n', accuracy_score(y_test, y_pred))
     print(80 * '*')
-    print('Confusion Matrix:\n', confusion_matrix(y_test, y_pred))
 
 
 def save_model(model, model_filepath):
@@ -153,17 +159,17 @@ def main():
     if len(sys.argv) == 3:
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X, y, category_names = load_data(database_filepath)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
         
         print('Building model...')
         model = build_model()
         
         print('Training model...')
-        model.fit(X_train, Y_train)
+        model.fit(X_train, y_train)
         
         print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+        evaluate_model(model, X_test, y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
         save_model(model, model_filepath)
