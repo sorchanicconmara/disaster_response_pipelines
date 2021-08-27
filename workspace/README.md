@@ -9,7 +9,7 @@
         `python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl`
 
 
-**NOTE:** Due to Git file size limitations, the .pkl has been compressed as a zip file. After cloning the repo, unzip the file in its current location to be able to call run.py.
+**NOTE:** Due to Git file size limitations, the classifier.pkl is not stored online. After cloning the repo, running the commands described in step 1 will create the classifier object in the models directory.
 
 2. Run the following command in the app's directory to run your web app.
     `python run.py`
