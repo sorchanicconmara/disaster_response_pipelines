@@ -3,6 +3,7 @@ import json
 import plotly
 import pandas as pd
 
+import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 
@@ -62,31 +63,128 @@ model = joblib.load("../models/classifier_ppl_grdsearch.pkl")
 def index():
     
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
+    # Used for distribution of message genres
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+
+    # Used for distribution of message categories
+    cats = df.iloc[:, 4:]
+    cat_names = cats.columns
+    cat_counts = (cats == 1).sum().sort_values(ascending=False)
+
+    # Used for distribution of genre vs aid related status
+    aid_related = df[df.aid_related == 1].groupby('genre').count()['message']
+    not_aid_related = df[df.aid_related == 0].groupby('genre').count()['message']
+    aid_types = aid_related.index
+
+    # Used for distribution of genre vs medical help status
+    med_help = df[df.medical_help == 1].groupby('genre').count()['message']
+    no_med_help = df[df.medical_help == 0].groupby('genre').count()['message']
+    med_help_types = med_help.index
     
     # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
+        {
+            "data": [
+                {
+                    "uid": "f4de1f",
+                    "hole": 0,
+                    "name": "Genre",
+                    "pull": 0,
+                    "type": "pie",
+                    "domain": {
+                        "x": [
+                            0,
+                            1
+                        ],
+                        "y": [
+                            0,
+                            1
+                        ]
+                    },
+
+                    "textinfo": "label+value",
+                    "hoverinfo": "all",
+                    "labels": genre_names,
+                    "values": genre_counts
+                }
+            ],
+            "layout": {
+                "title": "Distribution of Message Genres"
+            },
+            "frames": []
+        },
         {
             'data': [
                 Bar(
-                    x=genre_names,
-                    y=genre_counts
+                    x=cat_names,
+                    y=cat_counts,
                 )
             ],
 
             'layout': {
-                'title': 'Distribution of Message Genres',
+                'title': 'Distribution of Message Categories',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Category",
+                    'tickangle' : 40,
+                    'margin' : 30
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=aid_types,
+                    y=aid_related,
+                    name = "Aid Related"
+                ),
+                Bar(
+                    x=aid_types,
+                    y=not_aid_related,
+                    name="Not Aid Related"
+                ),
+            ],
+
+            'layout': {
+                'title': 'Distribution of Message by Genre their "Aid Related" status',
                 'yaxis': {
                     'title': "Count"
                 },
                 'xaxis': {
                     'title': "Genre"
-                }
+                },
+                'barmode' : 'group'
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=med_help_types,
+                    y=med_help,
+                    name="Medical Help"
+                ),
+                Bar(
+                    x=med_help_types,
+                    y=no_med_help,
+                    name="No Medical Help"
+                ),
+            ],
+
+            'layout': {
+                'title': 'Distribution of Message by Genre their "Medical Help" status',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Genre"
+                },
+                'barmode': 'group'
             }
         }
+
     ]
     
     # encode plotly graphs in JSON
